@@ -1,5 +1,10 @@
 /* jshint node: true */
 'use strict';
+const fs = require('fs');
+
+const Funnel = require('broccoli-funnel');
+const map = require('broccoli-stew').map;
+const mergeTrees = require('broccoli-merge-trees');
 
 module.exports = {
   name: 'ember-baremetrics-calendar',
@@ -14,15 +19,27 @@ module.exports = {
 
     var options = app.options.baremetricsCalendar || {};
 
-    var isFastBoot = process.env.EMBER_CLI_FASTBOOT === 'true';
-    if (!isFastBoot) {
-      app.import('bower_components/BaremetricsCalendar/public/js/Calendar.js');
-    }
+    app.import('vendor/Calendar.js');
+
     if (options.includeStyles !== false) {
       app.import('bower_components/BaremetricsCalendar/public/css/application.css');
     }
 
     return app;
+  },
+  treeForVendor: function(defaultTree) {
+    const app = this._findHost();
+    const assetPath =__dirname + '/' + app.bowerDirectory + '/BaremetricsCalendar/public/js/';
+
+    if (fs.existsSync(assetPath)) {
+      let calendarJs = new Funnel(assetPath, {
+        files: ['Calendar.js']});
+      calendarJs = map(calendarJs,
+        (content) => `if (typeof FastBoot === 'undefined') { ${content} }`);
+      return new mergeTrees([defaultTree, calendarJs]);
+    } else {
+      return defaultTree;
+    }
   }
 
 };
